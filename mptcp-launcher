@@ -48,7 +48,7 @@ class MptcpPktsAnalyzer:
 
 
 	def mptcp_connections(pkts):
-		"""Task 1 functions"""
+		"""Task 1 FUNCTION"""
 		count = 0
 		#MPTCP_Capable = 0x0
 		#MPTCP_CapableACK ---> successful handshake
@@ -74,7 +74,7 @@ class MptcpPktsAnalyzer:
 		print "Total Count: %i" % count
 
 	def payload_data(pkts):
-		"""Task 2 function"""
+		"""Task 2 FUNCTION"""
 
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
