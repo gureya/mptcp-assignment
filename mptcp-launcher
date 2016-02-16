@@ -46,10 +46,11 @@ class MptcpPktsAnalyzer:
 
 
 	def mptcp_connections(self, pkts):
-		"""Identify distinct MPTCP Connections that rechead Successful 
+		"""Identify distinct MPTCP Connections that reached Successful 
 		handshake --- Look for Ack packets with MPTCP option Header
 		For each MPTCP connection report Receiver's token value which
-		acts as the connectionID"""
+		acts as the connectionID
+		Note: excludes inbound connection attempts"""
 		count = 0
 		#MPTCP_Capable = 0x0
 		#MPTCP_CapableACK ---> successful handshake
@@ -59,6 +60,7 @@ class MptcpPktsAnalyzer:
 		 either step 2 or 3 in the first handshake)"""
 		print "Total packets: %s" % len(pkts)
 		print "======================================================================"
+		print "Identifying MPTCP Connections...."
 		for i in range(len(pkts)):
 			if(MPTCP_CapableACK in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 0):
 				count +=1 #Count the number of distinct MPTCP connections
@@ -71,8 +73,8 @@ class MptcpPktsAnalyzer:
 				self.key_snd = pkts[i][TCPOption_MP].mptcp.snd_key
 				self.snd_token, self.snd_dsn = self.key2tokenAndDSN(self.key_snd)
 
-				print ("%i. New MPTCP Connection (Successful Handshake) src: %s; dest: %s; Sender's key: %s; Receiver's key: %s; Recivers Token: %s; Sender's Token: %s" % (count, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.rcv_token, self.snd_token))
-		print "Total Count: %i" % count
+				print ("%i. New MPTCP Connection (Successful Handshake) src: %s; dest: %s; Sender's key: %s; Receiver's key: %s; Receivers Token (connectionID): %s; Sender's Token: %s" % (count, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.rcv_token, self.snd_token))
+		print "Total MPTCP Connections: %i" % count
 
 	def payload_data(self, pkts):
 		"""Report the number of payload bytes cumulatively exchanged over each MPTCP
@@ -80,26 +82,30 @@ class MptcpPktsAnalyzer:
 
 		#Get all the payload bytes exchanged over MPTCP connections
 		payload_bytes = 0
+		print "Determining the number of payload bytes excluding headers...."
+		#DSS = 0x2
 		for i in range(len(pkts)):
 			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 2 and Raw in pkts[i]):
 				payload_bytes += len(pkts[i][Raw].load)
 				#print("DSN: %s; subflow_seqnum: %s; Data(bytes): %s" % (pkts[i][TCPOption_MP].mptcp.dsn, pkts[i][TCPOption_MP].mptcp.subflow_seqnum, len(pkts[i][Raw].load)))
 
-		print "Total Number of payload_bytes in the file excluding headers: %s" % (payload_bytes)
+		print "Total Number of payload_bytes in the file (entire MPTCP connections) excluding headers): %s" % (payload_bytes)
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
-		print "SUBFLOW Connections..."
+		print "============================================================"
+		print "SUBFLOW Connections with their respective MPTCP connection (identified by connectionID)"
 		for i in range(len(pkts)):
 
-			#Initial Join message
+			#Initial Join Message
 			#rcv_token Identifies the connection to which the subflow belongs: connectionID
 			if(MPTCP_JoinSYN in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
-				print("New subflow: connectionID: %s; src: %s; dest: %s;" % (pkts[i][TCPOption_MP].mptcp.rcv_token, pkts[i][IP].src, pkts[i][IP].dst))
+				print("New subflow: connectionID: %s; src: %s; dest: %s; snd_nonce: %s" % (pkts[i][TCPOption_MP].mptcp.rcv_token, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_nonce))
 
+		#TODO: Now Need to track per-connection and per-subflow state
 
 # Program start up
 start_time = time.time()
-print "Start processing the pcap file...this might take sometime"
+print "Start parsing the pcap file...this might take sometime (Approximately 150 secs on my machine!)"
 
 # Get all the packets in a list
 pkts = rdpcap("mptcp-assignment.pcap")
@@ -111,7 +117,7 @@ print("--- %s Elapsed Seconds ---" % (time.time() - start_time))
 mptcp = MptcpPktsAnalyzer()
 
 while True:
-	task = input("Perform a task (1: Task One or 2: Task 2 0r 3: Exit) ")
+	task = input("Perform a task (1=Task One; 2=Task Two; 3=Exit")
 	if task == 1:
 		mptcp.mptcp_connections(pkts)
 	elif task == 2:
