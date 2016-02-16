@@ -89,7 +89,7 @@ class MptcpPktsAnalyzer:
 				payload_bytes += len(pkts[i][Raw].load)
 				#print("DSN: %s; subflow_seqnum: %s; Data(bytes): %s" % (pkts[i][TCPOption_MP].mptcp.dsn, pkts[i][TCPOption_MP].mptcp.subflow_seqnum, len(pkts[i][Raw].load)))
 
-		print "Total Number of payload_bytes in the file (entire MPTCP connections) excluding headers): %s" % (payload_bytes)
+		print "Total Number of payload bytes in the file (entire MPTCP connections) excluding headers): %s" % (payload_bytes)
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
 		print "============================================================"
@@ -117,12 +117,13 @@ print("--- %s Elapsed Seconds ---" % (time.time() - start_time))
 mptcp = MptcpPktsAnalyzer()
 
 while True:
-	task = input("Perform a task (1=Task One; 2=Task Two; 3=Exit")
+	task = input("Perform a task (1=Task One; 2=Task Two; 3=Exit): ")
 	if task == 1:
 		mptcp.mptcp_connections(pkts)
 	elif task == 2:
 		mptcp.payload_data(pkts)
 	elif task == 3:
+		print "Kwaheri"
 		sys.exit(0)
 	else:
 		print "Please select 1 or 2. Try Again!"
