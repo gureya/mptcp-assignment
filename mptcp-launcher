@@ -48,7 +48,8 @@ class MptcpPktsAnalyzer:
 	def mptcp_connections(self, pkts):
 		"""Identify distinct MPTCP Connections that rechead Successful 
 		handshake --- Look for Ack packets with MPTCP option Header
-		For each MPTCP connection report Receiver's token value"""
+		For each MPTCP connection report Receiver's token value which
+		acts as the connectionID"""
 		count = 0
 		#MPTCP_Capable = 0x0
 		#MPTCP_CapableACK ---> successful handshake
@@ -79,19 +80,21 @@ class MptcpPktsAnalyzer:
 
 		#Get all the payload bytes exchanged over MPTCP connections
 		payload_bytes = 0
-		for i in range(50):
+		for i in range(len(pkts)):
 			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 2 and Raw in pkts[i]):
 				payload_bytes += len(pkts[i][Raw].load)
-				print("DSN: %s; subflow_seqnum: %s; Data(bytes): %s" % (pkts[i][TCPOption_MP].mptcp.dsn, pkts[i][TCPOption_MP].mptcp.subflow_seqnum, len(pkts[i][Raw].load)))
+				#print("DSN: %s; subflow_seqnum: %s; Data(bytes): %s" % (pkts[i][TCPOption_MP].mptcp.dsn, pkts[i][TCPOption_MP].mptcp.subflow_seqnum, len(pkts[i][Raw].load)))
 
-		print "Total Number of payload_bytes in the file: %s" % (payload_bytes)
+		print "Total Number of payload_bytes in the file excluding headers: %s" % (payload_bytes)
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
-		print "New SUBFLOW Connections..."
+		print "SUBFLOW Connections..."
 		for i in range(len(pkts)):
-			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1 and pkts[i][TCPOption_MP].mptcp.rcv_token in pkts[i]):
-				print pkts[i][TCPOption_MP].show()
-				print("New subflow Connection src: %s; dest: %s; rcv_token: %s" % (pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.rcv_token))	
+
+			#Initial Join message
+			#rcv_token Identifies the connection to which the subflow belongs: connectionID
+			if(MPTCP_JoinSYN in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
+				print("New subflow: connectionID: %s; src: %s; dest: %s;" % (pkts[i][TCPOption_MP].mptcp.rcv_token, pkts[i][IP].src, pkts[i][IP].dst))
 
 
 # Program start up
