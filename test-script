@@ -1,0 +1,36 @@
+#!/usr/bin/env python2
+
+
+"""Returns the token and dsn from a key
+Generate a simple SHA1 hash of the key
+key is a 64bits integer
+Token is a 32bits integer, dsn is a 64bits integer
+"""
+from  binascii import *
+import struct
+import hashlib
+
+def key2tokenAndDSN(key):
+	    """Returns the token and dsn from a key
+	    Generate a simple SHA1 hash of the key
+	    key is a 64bits integer
+	    Token is a 32bits integer, dsn is a 64bits integer
+	    """
+	    import binascii
+	    keystr = struct.pack("!Q", key)
+	    h = hashlib.sha1(keystr.rjust(8,'\00'))
+	    shastr=h.digest() # binary
+	    #shastr = struct.pack("!IIIII", *struct.unpack("@IIIII",shastr)) #to net
+	    token, dsn = shastr[0:4], shastr[-8:]
+	    #print "raw: %s (len=%i)"%(shastr,len(shastr)) 
+	    #print "hex: %s"% binascii.hexlify(token), "%s"%binascii.hexlify(dsn)
+	    d1, d2 = struct.unpack("!II",dsn)
+	    token, dsn = (struct.unpack("!I",token)[0], (long(d2)<<32)+d1)
+	    #print "token: %x"% token
+	    #print "dsn: %x" % dsn
+	    return (token, dsn)
+
+key = 14232633393355152416
+token, dsn = key2tokenAndDSN(key)
+print "token: %x"% token
+print "dsn: %x" % dsn

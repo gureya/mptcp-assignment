@@ -19,35 +19,33 @@ logging.getLogger("scapy").setLevel(1)
 from scapy.all import *
 import time
 
-from hashlib import sha1
-import hmac
-
 class MptcpPktsAnalyzer:
 
-	start_time = time.time()
-	print "Start processing the pcap file...this might take sometime"
+	def key2tokenAndDSN(self, key):
+	    """Returns the token and dsn from a key
+	    Generate a simple SHA1 hash of the key
+	    key is a 64bits integer
+	    Token is a 32bits integer, dsn is a 64bits integer
+	    """
+	    import binascii
+	    import struct
+	    import hashlib
 
-	# Get all the packets in a list
-	pkts = rdpcap("mptcp-assignment.pcap")
-
-	print "Finished capturing the pcap packets in a readable format!"
-
-	print("--- %s Elapsed Seconds ---" % (time.time() - start_time))
-
-	def compute_token(self, rcv_key):
-		from hashlib import sha1
-		import hmac
-
-		#key
-		key = rcv_key
-
-		hashed = hmac.new(key, sha1)
-
-		#The signature
-		return hashed.digest().encode("base64").rstrip('\n')
+	    self.keystr = struct.pack("!Q", key)
+	    self.h = hashlib.sha1(self.keystr.rjust(8,'\00'))
+	    self.shastr=self.h.digest() # binary
+	    #shastr = struct.pack("!IIIII", *struct.unpack("@IIIII",shastr)) #to net
+	    self.token, self.dsn = self.shastr[0:4], self.shastr[-8:]
+	    #print "raw: %s (len=%i)"%(shastr,len(shastr)) 
+	    #print "hex: %s"% binascii.hexlify(token), "%s"%binascii.hexlify(dsn)
+	    self.d1, self.d2 = struct.unpack("!II",self.dsn)
+	    self.token, self.dsn = (struct.unpack("!I",self.token)[0], (long(self.d2)<<32)+self.d1)
+	    #print "token: %x"% token
+	    #print "dsn: %x" % dsn
+	    return (self.token, self.dsn)
 
 
-	def mptcp_connections(pkts):
+	def mptcp_connections(self, pkts):
 		"""Task 1 FUNCTION"""
 		count = 0
 		#MPTCP_Capable = 0x0
@@ -63,35 +61,42 @@ class MptcpPktsAnalyzer:
 				count +=1 #Count the number of distinct MPTCP connections
 				
 				#Compute the token
-				key = pkts[i][TCPOption_MP].mptcp.rcv_key #receivers key
-				bytes = str.encode(key)
-				hash_object = sha1(bytes)
-				hex_dig = hash_object.hexdigest()
+				self.key = pkts[i][TCPOption_MP].mptcp.rcv_key
+				self.token, self.dsn = self.key2tokenAndDSN(self.key)
 
-				print("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s; Token: %s" % 
-					(pkts[i][IP].src, pkts[i][IP].dst,
-					pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, hex_dig))
+				print ("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s; Recivers Token: %s" % (pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.token))
 		print "Total Count: %i" % count
 
-	def payload_data(pkts):
+	def payload_data(self, pkts):
 		"""Task 2 FUNCTION"""
 
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
-		if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
-			print("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s;" % 
-				(pkts[i][IP].src, pkts[i][IP].dst,pkts[i][TCPOption_MP].mptcp.snd_key, 
-					pkts[i][TCPOption_MP].mptcp.rcv_key))	
+		for i in range(len(pkts)):
+			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
+				print("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s;" % (pkts[i][IP].src, pkts[i][IP].dst,pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key))	
 
 
-	# Program start up
-	while True:
-		task = input("Perform a task (1: Task One or 2: Task 2 0r 3: Exit) ")
-		if task == 1:
-			mptcp_connections(pkts)
-		elif task == 2:
-			payload_data(pkts)
-		elif task == 3:
-			sys.exit(0)
-		else:
-			print "Please select 1 or 2. Try Again!"
+# Program start up
+start_time = time.time()
+print "Start processing the pcap file...this might take sometime"
+
+# Get all the packets in a list
+pkts = rdpcap("mptcp-assignment.pcap")
+
+print "Finished capturing the pcap packets in a readable format!"
+
+print("--- %s Elapsed Seconds ---" % (time.time() - start_time))
+
+mptcp = MptcpPktsAnalyzer()
+
+while True:
+	task = input("Perform a task (1: Task One or 2: Task 2 0r 3: Exit) ")
+	if task == 1:
+		mptcp.mptcp_connections(pkts)
+	elif task == 2:
+		mptcp.payload_data(pkts)
+	elif task == 3:
+		sys.exit(0)
+	else:
+		print "Please select 1 or 2. Try Again!"
