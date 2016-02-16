@@ -46,7 +46,9 @@ class MptcpPktsAnalyzer:
 
 
 	def mptcp_connections(self, pkts):
-		"""Task 1 FUNCTION"""
+		"""Identify distinct MPTCP Connections that rechead Successful 
+		handshake --- Look for Ack packets with MPTCP option Header
+		For each MPTCP connection report Receiver's token value"""
 		count = 0
 		#MPTCP_Capable = 0x0
 		#MPTCP_CapableACK ---> successful handshake
@@ -61,20 +63,21 @@ class MptcpPktsAnalyzer:
 				count +=1 #Count the number of distinct MPTCP connections
 				
 				#Compute the token
-				self.key = pkts[i][TCPOption_MP].mptcp.rcv_key
-				self.token, self.dsn = self.key2tokenAndDSN(self.key)
+				self.key_rcv = pkts[i][TCPOption_MP].mptcp.rcv_key
+				self.rcv_token, self.rcv_dsn = self.key2tokenAndDSN(self.key_rcv)
 
-				print ("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s; Recivers Token: %s" % (pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.token))
+				print ("%i. New MPTCP Connection (Successful Handshake) src: %s; dest: %s; Sender's key: %s; Receivers key: %s; Recivers Token: %s" % (count, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.rcv_token))
 		print "Total Count: %i" % count
 
 	def payload_data(self, pkts):
-		"""Task 2 FUNCTION"""
+		"""Report the number of payload bytes cumulatively exchanged over each MPTCP
+		connection"""
 
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
 		for i in range(len(pkts)):
 			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
-				print("New MPTCP Connection src: %s; dest: %s; Sender's key: %s; Receivers key: %s;" % (pkts[i][IP].src, pkts[i][IP].dst,pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key))	
+				print("New subflow Connection src: %s; dest: %s;" % (pkts[i][IP].src, pkts[i][IP].dst))	
 
 
 # Program start up
