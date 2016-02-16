@@ -62,19 +62,31 @@ class MptcpPktsAnalyzer:
 			if(MPTCP_CapableACK in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 0):
 				count +=1 #Count the number of distinct MPTCP connections
 				
-				#Compute the token
+				#Compute the receiver's token
 				self.key_rcv = pkts[i][TCPOption_MP].mptcp.rcv_key
 				self.rcv_token, self.rcv_dsn = self.key2tokenAndDSN(self.key_rcv)
 
-				print ("%i. New MPTCP Connection (Successful Handshake) src: %s; dest: %s; Sender's key: %s; Receivers key: %s; Recivers Token: %s" % (count, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.rcv_token))
+				#Compute the sender's token
+				self.key_snd = pkts[i][TCPOption_MP].mptcp.snd_key
+				self.snd_token, self.snd_dsn = self.key2tokenAndDSN(self.key_snd)
+
+				print ("%i. New MPTCP Connection (Successful Handshake) src: %s; dest: %s; Sender's key: %s; Receiver's key: %s; Recivers Token: %s; Sender's Token" % (count, pkts[i][IP].src, pkts[i][IP].dst, pkts[i][TCPOption_MP].mptcp.snd_key, pkts[i][TCPOption_MP].mptcp.rcv_key, self.rcv_token, self.snd_token))
 		print "Total Count: %i" % count
 
 	def payload_data(self, pkts):
 		"""Report the number of payload bytes cumulatively exchanged over each MPTCP
 		connection"""
 
+		#Get all the payload bytes exchanged over MPTCP connections
+		for i in range(len(pkts)):
+			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 2 and Raw in pkts[i]):
+				print("DSN: %s; subflow_seqnum: %s; datalevel_len: %s; load: %" % (pkts[i][TCPOption_MP].mptcp.dsn, 
+					pkts[i][TCPOption_MP].mptcp.subflow_seqnum, pkts[i][TCPOption_MP].mptcp.datalevel_len), 
+				pkts[i][Raw].load)
+
 		#MPTCP WITH SUBFLOW CONNECTIONS
 		#MPTCP_JOINs = 0x1
+		print "New SUBFLOW Connections..."
 		for i in range(len(pkts)):
 			if(TCPOption_MP in pkts[i] and pkts[i][TCPOption_MP].mptcp.subtype == 1):
 				print("New subflow Connection src: %s; dest: %s;" % (pkts[i][IP].src, pkts[i][IP].dst))	
