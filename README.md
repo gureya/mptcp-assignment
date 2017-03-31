@@ -18,6 +18,7 @@ WARNING: No route found for IPv6 destination :: (no default route?)
 Start parsing the pcap file...this might take sometime (Approximately 150 secs on my machine!)
 Finished capturing the pcap packets in a readable format!
 --- 157.481197834 Elapsed Seconds ---
+
 Perform a task (1=Task One; 2=Task Two; 3=Exit): 1
 
 Successful Handshake --- Look for Ack packets with MPTCP option Header
@@ -31,6 +32,7 @@ Identifying MPTCP Connections....
 3. New MPTCP Connection (Successful Handshake) src: 123.123.123.1; dest: 42.42.42.1; Sender's key: 5823071776475689728; Receiver's key: 4848392901692201259; Receivers Token (connectionID): 1243844425; Sender's Token: 229917286
 4. New MPTCP Connection (Successful Handshake) src: 123.123.123.1; dest: 42.42.42.1; Sender's key: 14199735500882309953; Receiver's key: 3371602785583873677; Receivers Token (connectionID): 1021507062; Sender's Token: 825014698
 Total MPTCP Connections: 4
+
 Perform a task (1=Task One; 2=Task Two; 3=Exit: 2
 
 Determining the number of payload bytes excluding headers....
